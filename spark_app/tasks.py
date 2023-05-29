@@ -41,32 +41,38 @@ schema = StructType([
         ])), True)
     ]), True)
 ])
-# def save_to_mysql(df, epoch_id):
-#     df.write \
-#         .format("jdbc") \
-#         .mode("append") \
-#         .option("url", "jdbc:mysql://localhost:3306/weather_data") \
-#         .option("driver", "com.mysql.cj.jdbc.Driver") \
-#         .option("dbtable", "weather") \
-#         .option("user", "yourusername") \
-#         .option("password", "yourpassword") \
-#         .save()
 
-# spark = SparkSession.builder \
-#     .appName("Data_Pipeline") \
-#     .getOrCreate()
+
+
+
+
+def save_to_mysql(df):
+    df.write \
+        .format("jdbc") \
+        .mode("append") \
+        .option("url", "jdbc:mysql://mysql-128808-0.cloudclusters.net:19320/meteodb") \
+        .option("driver", "com.mysql.cj.jdbc.Driver") \
+        .option("dbtable", "spark_app_data") \
+        .option("user", "admin") \
+        .option("password", "ixJQgvsI") \
+        .save()
+
+spark = SparkSession.builder \
+    .appName("Data_Pipeline") \
+    .getOrCreate()
 
 
 
 def fetch_data_from_api():
     response = requests.get(api_url)
     json_data = response.json()
-    print(json_data)
-    json_data = response.json()
+
 
     # Create a DataFrame from the JSON data
-    # df = spark.createDataFrame([json_data], schema=schema)
-    # print(df)
+    df = spark.createDataFrame([json_data], schema=schema)
+    print('df *-*-*--**-')
+    print(df)
+    save_to_mysql(df)
 
 def start():
     pass
