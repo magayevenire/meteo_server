@@ -1,78 +1,100 @@
-import findspark 
-findspark.init()
-
 from apscheduler.schedulers.background import BackgroundScheduler
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import current_timestamp, expr
+from pyspark.sql.types import StructType, StructField, StringType, DoubleType ,ArrayType ,LongType ,IntegerType
+import mysql.connector
+import os 
+from configparser import ConfigParser
 import requests
 from pyspark.sql import SparkSession
-# from pyspark.sql.functions import current_timestamp, expr
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType ,ArrayType ,LongType ,IntegerType
-# import mysql.connector
-# import os 
-# from configparser import ConfigParser
-
-# from pyspark.sql import SparkSession
-# from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
-api_url = "https://api.openweathermap.org/data/2.5/onecall?lat=14.497401&lon=-14.452362&exclude=hourly,daily&appid=101098fb7b42c64a657c60649632e063"
-schema = StructType([
-    StructField("lat", DoubleType(), True),
-    StructField("lon", DoubleType(), True),
-    StructField("timezone", StringType(), True),
-    StructField("timezone_offset", IntegerType(), True),
-    StructField("current", StructType([
-        StructField("dt", LongType(), True),
-        StructField("sunrise", LongType(), True),
-        StructField("sunset", LongType(), True),
-        StructField("temp", DoubleType(), True),
-        StructField("feels_like", DoubleType(), True),
-        StructField("pressure", IntegerType(), True),
-        StructField("humidity", IntegerType(), True),
-        StructField("dew_point", DoubleType(), True),
-        StructField("uvi", IntegerType(), True),
-        StructField("clouds", IntegerType(), True),
-        StructField("visibility", IntegerType(), True),
-        StructField("wind_speed", DoubleType(), True),
-        StructField("wind_deg", IntegerType(), True),
-        StructField("wind_gust", DoubleType(), True),
-        StructField("weather", ArrayType(StructType([
-            StructField("id", IntegerType(), True),
-            StructField("main", StringType(), True),
-            StructField("description", StringType(), True),
-            StructField("icon", StringType(), True)
-        ])), True)
-    ]), True)
-])
-
-
-
-
-
-def save_to_mysql(df):
-    df.write \
-        .format("jdbc") \
-        .mode("append") \
-        .option("url", "jdbc:mysql://mysql-128808-0.cloudclusters.net:19320/meteodb") \
-        .option("driver", "com.mysql.cj.jdbc.Driver") \
-        .option("dbtable", "spark_app_data") \
-        .option("user", "admin") \
-        .option("password", "ixJQgvsI") \
-        .save()
-
+from pyspark.sql.functions import udf, col, explode
+from pyspark.sql import Row
+import json
+from pyspark.sql.functions import split
+from pyspark.sql.functions import from_json ,to_json
+from pyspark.sql.types import MapType,StringType
 spark = SparkSession.builder \
     .appName("Data_Pipeline") \
     .getOrCreate()
 
+headers = {
+  'content-type': "application/json"
+}
+
+body = json.dumps({})
+
+RestApiRequestRow = Row("verb", "url", "headers", "body")
+
+api_url = "https://api.openweathermap.org/data/2.5/onecall?lat=14.497401&lon=-14.452362&exclude=hourly,daily&appid=101098fb7b42c64a657c60649632e063"
+request_df = spark.createDataFrame([
+  RestApiRequestRow("get", api_url, headers, body)
+])
+
+
+schema = StructType([
+
+  
+    StructField("current", StructType([
+        StructField("dt", LongType(), True),
+
+        StructField("temp", DoubleType(), True),
+
+        StructField("humidity", IntegerType(), True),
+
+        StructField("visibility", IntegerType(), True),
+        StructField("wind_speed", DoubleType(), True),
+
+    ]), True)
+])
+
+def executeRestApi(verb, url, headers, body):
+  headers = {
+      'content-type': "application/json"
+  }
+  res = None
+  # Make API request, get response object back, create dataframe from above schema.
+  try:
+    if verb == "get":
+      res = requests.get(url, data=body, headers=headers)
+    else:
+      res = requests.post(url, data=body, headers=headers)
+  except Exception as e:
+    return e
+  if res != None and res.status_code == 200:
+    return json.loads(res.text)
+  return None
+
+
+
+
+
+udf_executeRestApi = udf(executeRestApi, schema)
+
+current_schema=StructType([
+StructField("dt", LongType(), True),
+
+        StructField("temp", DoubleType(), True),
+
+        StructField("humidity", IntegerType(), True),
+
+        StructField("wind_speed", DoubleType(), True),
+])
 
 
 def fetch_data_from_api():
-    response = requests.get(api_url)
-    json_data = response.json()
+    result_df_data = request_df.withColumn("data", udf_executeRestApi(col("verb"), col("url"), col("headers"), col("body")))\
+    .withColumn("data",to_json(col("data")))\
+    .withColumn("data", from_json("data", schema))\
+    .select( col('data.*'))\
+    .withColumn("current",to_json(col("current")))\
+    .withColumn("current", from_json("current", current_schema))\
+    .select( col('current.*'))\
+    .withColumnRenamed('dt', 'timestamp')\
+    .withColumnRenamed('temp', 'temperature')\
+    .show(truncate=False)
 
-
-    # Create a DataFrame from the JSON data
-    df = spark.createDataFrame([json_data], schema=schema)
-    print('df *-*-*--**-')
-    print(df)
-    save_to_mysql(df)
+    # print(df)
+   
 
 def start():
     pass
