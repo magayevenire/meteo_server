@@ -13,6 +13,11 @@ import json
 from pyspark.sql.functions import split
 from pyspark.sql.functions import from_json ,to_json
 from pyspark.sql.types import MapType,StringType
+
+import findspark 
+findspark.init()
+
+
 spark = SparkSession.builder \
     .appName("Data_Pipeline") \
     .getOrCreate()
@@ -68,7 +73,7 @@ def executeRestApi(verb, url, headers, body):
 
 
 
-udf_executeRestApi = udf(executeRestApi, schema)
+# udf_executeRestApi = udf(executeRestApi, schema)
 
 current_schema=StructType([
 StructField("dt", LongType(), True),
