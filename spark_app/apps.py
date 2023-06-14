@@ -6,4 +6,4 @@ class SparkAppConfig(AppConfig):
     name = 'spark_app'
     def ready(self):
         from spark_app import tasks
-        tasks.start()
+        # tasks.start()
