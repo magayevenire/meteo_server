@@ -7,6 +7,6 @@ class Data(models.Model):
     temperature = models.FloatField(null=True,blank=True)
     humidity = models.FloatField(null=True,blank=True)
     wind_speed = models.FloatField(null=True,blank=True)
-    timestamp = models.TimeField(null=True,blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
 

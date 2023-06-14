@@ -26,6 +26,15 @@ SECRET_KEY = 'django-insecure-()f#x@$+2wodmlx^qawp44w29nmstws_$)x=xjom_9t@y(e6@l
 DEBUG = True
 
 ALLOWED_HOSTS = []
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_FILE_PATH = BASE_DIR /"sent_emails"
+EMAIL_USE_TLS = False
+EMAIL_USE_SSL = False
+EMAIL_HOST = 'ssl0.ovh.net' 
+# EMAIL_USE_TLS = True 
+EMAIL_PORT = 25
+EMAIL_HOST_USER = 'postmaster@magai.ovh' 
+EMAIL_HOST_PASSWORD = 'Memorex96'
 
 
 # Application definition
@@ -42,7 +51,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
     'corsheaders',
-    'spark_app',
+    'spark_app.apps.SparkAppConfig',
 
 ]
 
