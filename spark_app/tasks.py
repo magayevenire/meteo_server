@@ -93,7 +93,7 @@ def fetch_data_from_api():
     .withColumnRenamed('temp', 'temperature')\
     .show(truncate=False)
 
-    # print(df)
+    print("df ####")
    
 
 def start():
