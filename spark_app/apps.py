@@ -8,4 +8,4 @@ class SparkAppConfig(AppConfig):
     def ready(self):
        
         from spark_app import tasks
-        # tasks.start()
+        tasks.start()

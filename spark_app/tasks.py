@@ -1,4 +1,3 @@
-
 import findspark 
 findspark.init()
 
@@ -17,7 +16,7 @@ import json
 from pyspark.sql.functions import split
 from pyspark.sql.functions import from_json ,to_json
 from pyspark.sql.types import MapType,StringType
-
+from datetime import datetime
 
 
 spark = SparkSession.builder \
@@ -89,6 +88,7 @@ StructField("dt", LongType(), True),
 
 
 def fetch_data_from_api():
+    print('fetching data from the API ...')
     result_df_data = request_df.withColumn("data", udf_executeRestApi(col("verb"), col("url"), col("headers"), col("body")))\
     .withColumn("data",to_json(col("data")))\
     .withColumn("data", from_json("data", schema))\
@@ -98,12 +98,29 @@ def fetch_data_from_api():
     .select( col('current.*'))\
     .withColumnRenamed('dt', 'timestamp')\
     .withColumnRenamed('temp', 'temperature')\
-    .show(truncate=False)
+    # .show(truncate=False)
+    print(result_df_data.select('timestamp').collect())
 
-    print("df ####")
+    # row = result_df_data\
+    #   .collect()
+    # row = result_df_data\
+    #   .toJSON().first()
+    
+    # print(row)
+    
+
+    # timestamp = datetime.utcfromtimestamp(row[0][0]).strftime('%Y-%m-%d %H:%M:%S')
+    # temperature = row[0][1]
+    # humidity = row[0][2]
+    # wind_speed = row[0][3]
+
+    # print("timestamp", timestamp)
+    # print("temperature", temperature)
+    # print("humidity", humidity)
+    # print("wind_speed", wind_speed)
    
 
 def start():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(fetch_data_from_api, 'interval', minutes=1)
+    scheduler.add_job(fetch_data_from_api, trigger='interval', seconds=60)
     scheduler.start()
