@@ -97,7 +97,6 @@ def fetch_data_from_api():
    
 
 def start():
-    pass
     scheduler = BackgroundScheduler()
     scheduler.add_job(fetch_data_from_api, 'interval', minutes=1)
     scheduler.start()
