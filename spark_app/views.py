@@ -23,17 +23,18 @@ class DataViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(data)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
     @action(detail=False)
     def get_last_15(self, request):
-        current_datetime = timezone.now()
 
-        # Soustraction de 15 minutes pour obtenir la date et heure de départ
-        start_datetime = current_datetime - timedelta(minutes=15)
 
         # Extraction des données toutes les 15 minutes
-        data = Data.objects.filter(timestamp__gte=start_datetime, timestamp__lte=current_datetime)
+        time = datetime.now() - timedelta(minutes=15)
+        data = Data.objects.filter(timestamp__gte=time)
+        print(data)
+        serializer = self.get_serializer(data ,many=True)
 
-        serializer = self.get_serializer(data)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=False)

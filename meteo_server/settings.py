@@ -33,8 +33,8 @@ EMAIL_USE_SSL = False
 EMAIL_HOST = 'ssl0.ovh.net' 
 # EMAIL_USE_TLS = True 
 EMAIL_PORT = 25
-EMAIL_HOST_USER = 'postmaster@magai.ovh' 
-EMAIL_HOST_PASSWORD = 'Memorex96'
+EMAIL_HOST_USER = 'support.naatal@mag-ai.ovh' 
+EMAIL_HOST_PASSWORD = '2AHUi3Byap38'
 
 
 # Application definition
