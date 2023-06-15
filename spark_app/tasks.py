@@ -17,6 +17,19 @@ from datetime import datetime
 import time
 from django.core.mail import send_mail
 from django.conf import settings
+from configparser import ConfigParser
+
+config = ConfigParser()
+config.read('Config.ini')
+
+APIKEY = config.get("openweathermap", "APIKEY")
+URL = config.get("openweathermap", "URL")
+
+city = {
+    "name": "Dakar",
+    "lat": 14.67,
+    "lon": -17.44
+}
 
 def executeRestApi(verb, url, headers, body):
     headers = {
@@ -80,7 +93,9 @@ class spark_meteo():
 
     RestApiRequestRow = Row("verb", "url", "headers", "body")
 
-    api_url = "https://api.openweathermap.org/data/2.5/onecall?lat=14.497401&lon=-14.452362&exclude=hourly,daily&appid=101098fb7b42c64a657c60649632e063"
+    # api_url = "https://api.openweathermap.org/data/2.5/onecall?lat=14.497401&lon=-14.452362&exclude=hourly,daily&appid=101098fb7b42c64a657c60649632e063"
+    api_url = f"{URL}?lat={city['lat']}&lon={city['lon']}&exclude=hourly,daily&appid={APIKEY}&units=metric"
+
     self.request_df = spark.createDataFrame([
       RestApiRequestRow("get", api_url, self.headers, body)
     ])
@@ -95,6 +110,7 @@ class spark_meteo():
     try:
         print('fetching data from the API ...')
         udf_executeRestApi = udf(executeRestApi, self.schema)
+        print('udf_executeRestApi ✅')
 
         result_df_data = self.request_df.withColumn("data",udf_executeRestApi(col("verb"), col("url"), col("headers") , col("body")))\
         .withColumn("data",to_json(col("data")))\
@@ -106,19 +122,22 @@ class spark_meteo():
         .withColumnRenamed('dt', 'timestamp')\
         .withColumnRenamed('temp', 'temperature')\
         .withColumn("timestamp",to_timestamp("timestamp"))
+        print('request_df ✅')
 
         # .withColumn("timestamp",col("timestamp").cast(StringType()))\
         result_df_data.write \
         .format("jdbc") \
         .mode("append") \
         .option("driver","com.mysql.cj.jdbc.Driver") \
-        .option("url", "jdbc:mysql://127.0.0.1:3306/meteodb") \
+        .option("url", "jdbc:mysql://127.0.0.1:3306/meteodb?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC") \
         .option("dbtable", "spark_app_data") \
         .option("user", "root") \
         .option("password", "") \
         .save()
+        print('result_df_data.write ✅')
         
     except Exception as error :
+      print('Error on fetching api data ⛔', error)
       send_mail(subject='error',message=str(error),from_email=settings.EMAIL_HOST_USER,recipient_list=['magayendiaye56@gmail.com'])
 
      

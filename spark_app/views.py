@@ -1,4 +1,3 @@
-
 from rest_framework import viewsets
 from .models import Data
 from .serializers import DataSerializer 
@@ -44,13 +43,20 @@ class DataViewSet(viewsets.ModelViewSet):
 
         	
         time = datetime.now() - timedelta(hours=1)
-        data_by_hour = Data.objects.filter(timestamp__gte=time).aggregate(Avg('temperature'))
+        data_by_hour = Data.objects.filter(timestamp__gte=time).aggregate(Avg('temperature'),Avg('temperature'),Avg('humidity'),Avg('wind_speed'))
         print(data_by_hour)
-        return Response({"temperature":data_by_hour['temperature__avg']}, status=status.HTTP_200_OK)
+        return Response({"temperature":data_by_hour['temperature__avg'],"humidity":data_by_hour['humidity__avg'] ,"wind_speed":data_by_hour['wind_speed__avg']}, status=status.HTTP_200_OK)
     
     @action(detail=False)
     def get_moy_day(self, request):
         time = datetime.now() - timedelta(days=1)
+        data_by_day = Data.objects.filter(timestamp__gte=time).aggregate(Avg('temperature'),Avg('humidity'),Avg('wind_speed'))
+
+        return Response({"temperature":data_by_day['temperature__avg'],"humidity":data_by_day['humidity__avg'] ,"wind_speed":data_by_day['wind_speed__avg']}, status=status.HTTP_200_OK)
+    
+    @action(detail=False)
+    def get_projection_temp(self, request):
+        time = datetime.now() - timedelta(hours=3)
         data_by_day = Data.objects.filter(timestamp__gte=time).aggregate(Avg('temperature'))
 
         return Response({"temperature":data_by_day['temperature__avg']}, status=status.HTTP_200_OK)
