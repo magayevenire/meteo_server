@@ -5,14 +5,24 @@ from .serializers import DataSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-from datetime import timedelta, timezone
+from datetime import timedelta ,datetime
 from django.db.models import Avg
-
+from django.utils import timezone
 class DataViewSet(viewsets.ModelViewSet):
     serializer_class =DataSerializer
     queryset = Data.objects.all()
 
 
+    @action(detail=False)
+    def get_last(self, request):
+        
+
+
+        # Extraction des données toutes les 15 minutes
+        data = Data.objects.last() 
+
+        serializer = self.get_serializer(data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     @action(detail=False)
     def get_last_15(self, request):
         current_datetime = timezone.now()
@@ -30,13 +40,16 @@ class DataViewSet(viewsets.ModelViewSet):
     def get_moy_hour(self, request):
 
         # Moyennes par heure
-        data_by_hour = Data.objects.extra({'hour': "EXTRACT(hour FROM timestamp)"}).values('hour').annotate(average_temperature=Avg('temperature'))
-        
-        return Response({"temperature":data_by_hour['average_temperature']}, status=status.HTTP_200_OK)
+
+        	
+        time = datetime.now() - timedelta(hours=1)
+        data_by_hour = Data.objects.filter(timestamp__gte=time).aggregate(Avg('temperature'))
+        print(data_by_hour)
+        return Response({"temperature":data_by_hour['temperature__avg']}, status=status.HTTP_200_OK)
     
     @action(detail=False)
     def get_moy_day(self, request):
+        time = datetime.now() - timedelta(days=1)
+        data_by_day = Data.objects.filter(timestamp__gte=time).aggregate(Avg('temperature'))
 
-        data_by_day = Data.objects.extra({'day': "DATE(timestamp)"}).values('day').annotate(average_temperature=Avg('temperature'))
-
-        return Response({"temperature":data_by_day['average_temperature']}, status=status.HTTP_200_OK)
+        return Response({"temperature":data_by_day['temperature__avg']}, status=status.HTTP_200_OK)
